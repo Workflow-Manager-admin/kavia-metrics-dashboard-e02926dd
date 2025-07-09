@@ -54,8 +54,8 @@ def health_check():
 @app.get(
     "/metrics",
     response_model=List[MetricModel],
-    summary="Fetch all metric entries from S3",
-    description="Returns a list of all metrics JSON entries in the S3 bucket.",
+    summary="Fetch all metric entries (S3 or mock)",
+    description="Returns a list of all metrics JSON entries in the S3 bucket, or mock data if S3 is unavailable or mock mode is enabled (USE_MOCK_DATA=true). See README for details.",
     tags=["metrics"],
     responses={
         200: {"description": "Successful Response"},
@@ -64,7 +64,10 @@ def health_check():
 )
 def get_all_metrics():
     """
-    Returns a list of all parsed metrics from S3 as JSON.
+    Returns a list of all parsed metrics as JSON. If AWS S3 is unavailable or mock mode is enabled, mock data is returned instead.
+
+    - Set the environment variable USE_MOCK_DATA=true to always use mock data for development/testing.
+    - When S3 connection fails for any reason, the API automatically serves mock data.
     """
     try:
         entries = s3_service.get_all_metrics()
@@ -79,8 +82,8 @@ def get_all_metrics():
 @app.get(
     "/metrics/{id}",
     response_model=MetricModel,
-    summary="Fetch specific metric entry by id",
-    description="Returns a single metric entry by unique identifier (from field or S3 object key) from the S3 bucket.",
+    summary="Fetch a metric entry by id (S3 or mock)",
+    description="Returns a single metric entry by unique identifier (from S3 or mock data if S3 is not available or USE_MOCK_DATA=true). See README for mock usage.",
     tags=["metrics"],
     responses={
         200: {"description": "Metric found"},
@@ -91,6 +94,11 @@ def get_all_metrics():
 def get_metric_by_id(id: str = Path(..., description="The unique metric id (from object key or entry id field)")):
     """
     Returns one metric entry matching its identifier.
+
+    - Serves from S3 by default.
+    - Uses mock data when S3 is unavailable or USE_MOCK_DATA=true.
+
+    For development, set USE_MOCK_DATA=true to always use mock data.
     """
     try:
         metric = s3_service.get_metric_by_id(id)
